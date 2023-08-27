@@ -3,10 +3,12 @@ const passportLocalMongoose = require('passport-local-mongoose');
 
 const User = new mongoose.Schema({
     phone:{
-        type:Number,
-        required: true
+        type:Number
     },
     email:{
+        type:String
+    },
+    username:{
         type:String,
         required: true
     }
