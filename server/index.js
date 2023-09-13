@@ -10,10 +10,19 @@ const RedisStore = require('connect-redis').default;
 const upload = multer();
 require('dotenv').config();
 const path = require('path');
+const fs = require('fs');
 const PORT = process.env.PORT || 5000;
 const session = require('express-session');
 const data = require('./database/data');
 const User = require('./models/User');
+
+function isLoggedIn(req, res, next){
+    if(req.isAuthenticated()){
+        return next();
+    }
+    res.redirect("/login");
+}
+
 
 // initialize redis store
 let redisClient = createClient();
@@ -69,13 +78,15 @@ app.post('/signup',async (req,res)=>{
 }); 
 
 app.post("/login", passport.authenticate("local",{
-    successRedirect: "/",
-    failureRedirect: "/login"
+    successRedirect: "/image",
+    failureRedirect: "/"
 }), function(req, res){
+    
     res.send("yes :)")
 });
+
 app.post('/admin/login',(req,res)=>{
-    
+
     if(req.body.user===process.env.user && req.body.password===process.env.password){
 
         return res.send("Admin logged in");
@@ -83,13 +94,16 @@ app.post('/admin/login',(req,res)=>{
     res.redirect('/login');
 });
 
-app.get("/image",async(req,res)=>{
-    if(req.isUnauthenticated()){
-        return res.send("nonono");
-    }
-   res.sendFile(path.join(__dirname,"./public/images/test.png")); 
+app.get("/image",isLoggedIn,async(req,res)=>{
+    fs.readdir("./public/images",(err,files)=>{
+        if(err) return res.status(400).json({message:"Unexpected error",status:false});
+        let randNumber = Math.ceil(Math.random()*(files.length -1));
+        return res.json({path:path.join(__dirname,`./public/images/${files[randNumber]}`),number:randNumber})
+    })
+//    res.sendFile(path.join(__dirname,"./public/images/test.png")); 
 });
-
+app.use("/images",isLoggedIn);
+app.use("/images",express.static(path.join(__dirname,"./public/images")));
 app.post("/logout",async(req,res)=>{
     if(!req.isAuthenticated()){
         return res.redirect('/login');
@@ -101,9 +115,9 @@ app.post("/logout",async(req,res)=>{
         }
     
         res.send("success");
-
     })
-})
+});
+
 app.listen(PORT,()=>{
 console.log(`Listening to port ${PORT}....`);
 }); 
