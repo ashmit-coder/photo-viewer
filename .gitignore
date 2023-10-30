@@ -133,3 +133,4 @@ dist
 # miscelaneous
 package-lock.json
 ./server/package-lock.json
+./server/test.js
