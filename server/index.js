@@ -11,10 +11,19 @@ const RedisStore = require('connect-redis').default;
 const upload = multer();
 require('dotenv').config();
 const path = require('path');
+const fs = require('fs');
 const PORT = process.env.PORT || 5000;
 const session = require('express-session');
 const data = require('./database/data');
 const User = require('./models/User');
+
+function isLoggedIn(req, res, next){
+    if(req.isAuthenticated()){
+        return next();
+    }
+    res.redirect("/login");
+}
+
 
 // initialize redis store
 const redisClient = createClient({
@@ -81,8 +90,9 @@ app.post("/api/login", passport.authenticate("local",{
 }), function(req, res){
     res.status(200).json({success:true, message:"Login successful"})
 });
+
 app.post('/admin/login',(req,res)=>{
-    
+
     if(req.body.user===process.env.user && req.body.password===process.env.password){
 
         return res.send("Admin logged in");
@@ -114,7 +124,8 @@ app.post("/api/logout",async(req,res)=>{
         res.status(200).json({message:"Logged out",success:true});
 
     })
-})
+});
+
 app.listen(PORT,()=>{
 console.log(`Listening to port ${PORT}....`);
 }); 
