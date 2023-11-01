@@ -4,7 +4,8 @@
   "description": "a site to display photos and rate them",
   "main": "index.js",
   "scripts": {
-    "server": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "server":"node index.js"
   },
   "keywords": [],
   "author": "",

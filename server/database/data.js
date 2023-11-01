@@ -11,8 +11,8 @@ const Images = require('../models/Images');
 
 async function LookAtImages(){
     let data = await Images.find();
-    console.log(data[1]);
-    console.log( data);
+    let a = parseInt((Math.random())*data.length);
+    return data[a];
 }
 
 async function addImages(fileName){
@@ -20,4 +20,7 @@ async function addImages(fileName){
     await data.save();
 }
 
-// module.exports = {addImages};
+module.exports = {
+    addImages,
+    LookAtImages
+};

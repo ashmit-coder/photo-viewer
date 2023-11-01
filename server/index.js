@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const morgan  = require('morgan');
 const cors = require('cors');
+const fs = require('fs');
 const multer = require('multer');
 const passport =  require('passport');
 const LocalStrategy = require('passport-local');
@@ -16,15 +17,21 @@ const data = require('./database/data');
 const User = require('./models/User');
 
 // initialize redis store
-let redisClient = createClient();
-redisClient.connect().catch(console.error);
+const redisClient = createClient({
+    password: process.env.REDIS_KEY,
+    socket: {
+        host: 'redis-10511.c114.us-east-1-4.ec2.cloud.redislabs.com',
+        port: 10511
+    }
+});
+redisClient.connect().then(()=>{console.log("Connected to cache")}).catch(console.error);
 let redisStore = new RedisStore({
     client: redisClient,
     prefix:"myapp:",
     ttl: 3000000
 });
 
-// app.use(morgan('combined'));
+app.use(morgan('combined'));
 app.use(express.json());
 app.use(express.urlencoded({extended:true}));
 app.use(cors());
@@ -32,7 +39,7 @@ app.use(upload.array());
 
 
 app.get('/',(req,res)=>{
-    res.json({status:true,message:"connection established"});
+    res.status(200).json({status:true,message:"connection established"});
 });
 // initializing sessions based services
 app.use(session({
@@ -51,28 +58,28 @@ passport.use(new LocalStrategy(User.authenticate()));
 passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 
-app.post('/signup',async (req,res)=>{
+app.post('/api/signup',async (req,res)=>{
     console.log(req.body);
      User.register(new User(req.body),req.body.password,(err,user)=>{
         if(err){
             console.log(err);
-            return res.send("ehhh");
+            return res.status(400).json({success:false,message:"Error registering"});
         }
         else{
              req.login(user,(err)=>{
                 console.log(err);
-                return res.send("kar liya");
+                return res.status(200).json({success:true,message:"User registered successfully"});
             })
           
         }
     })
 }); 
 
-app.post("/login", passport.authenticate("local",{
-    successRedirect: "/",
-    failureRedirect: "/login"
+app.post("/api/login", passport.authenticate("local",{
+    successRedirect: "/",successFlash:true,successMessage:"Login Success",
+    failureRedirect: "/api/login"
 }), function(req, res){
-    res.send("yes :)")
+    res.status(200).json({success:true, message:"Login successful"})
 });
 app.post('/admin/login',(req,res)=>{
     
@@ -83,24 +90,28 @@ app.post('/admin/login',(req,res)=>{
     res.redirect('/login');
 });
 
-app.get("/image",async(req,res)=>{
+app.get("/api/image",async(req,res)=>{
     if(req.isUnauthenticated()){
-        return res.send("nonono");
+        return res.status(403).json({success:false,message:"Access denied"});
     }
-   res.sendFile(path.join(__dirname,"./public/images/test.png")); 
+
+    
+//    res.status(200).sendFile(path.join(__dirname,"./public/images/test.png")); 
+     let dat = await data.LookAtImages();
+     return res.status(200).sendFile(path.join(__dirname,dat.path));
 });
 
-app.post("/logout",async(req,res)=>{
+app.post("/api/logout",async(req,res)=>{
     if(!req.isAuthenticated()){
-        return res.redirect('/login');
+        return res.status(205).redirect('/login');
     }
     req.logout("local",(err)=>{
         if(err){
             console.log(err);
-           return res.send("error");
+           return res.status(404).json({message:"Error while logging out",success:false});
         }
     
-        res.send("success");
+        res.status(200).json({message:"Logged out",success:true});
 
     })
 })
