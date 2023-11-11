@@ -1,5 +1,8 @@
 const express = require('express');
 const app = express();
+app.set('trust proxy', 2)
+// app.get('/ip', (request, response) => response.send(request.ip))
+
 const morgan  = require('morgan');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -50,7 +53,9 @@ app.use(express.json());
 app.use(express.urlencoded({extended:true}));
 app.use(cors());
 app.use(upload.array());
-app.use(helmet());
+app.use(helmet({
+    crossOriginResourcePolicy:{policy:"cross-origin"}
+}));
 app.use(limiter);
 
 
@@ -141,6 +146,12 @@ app.post("/api/logout",async(req,res)=>{
     })
 });
 
+app.get('/api/isAuth',async(req,res)=>{
+    if(req.isAuthenticated()){
+        return res.status(200).json({success:true,message:req.sessionID});
+    }
+    return res.status(401).json({message:undefined,success:false});
+})
 app.listen(PORT,()=>{
 console.log(`Listening to port ${PORT}....`);
 }); 
